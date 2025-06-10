@@ -1,104 +1,130 @@
-import vertSource from './shaders/triangle.vert';
-import fragSource from './shaders/triangle.frag';
+// Import the shader files
+import vertexShaderSource from './shaders/triangle.vert';
+import fragmentShaderSource from './shaders/triangle.frag';
 
-const canvas = document.createElement('canvas');
-canvas.width = 640;
-canvas.height = 480;
-document.body.appendChild(canvas);
-
-const gl = canvas.getContext('webgl2');
-if (!gl) {
-  throw new Error('WebGL2 not supported');
-}
-const gl2 = gl as WebGL2RenderingContext;
-
-function createShader(gl: WebGL2RenderingContext, type: GLenum, source: string): WebGLShader {
-  const shader = gl.createShader(type)!;
-  gl.shaderSource(shader, source);
-  gl.compileShader(shader);
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    console.error(gl.getShaderInfoLog(shader));
-    gl.deleteShader(shader);
-    throw new Error('Could not compile shader');
-  }
-  return shader;
+// --- Helper functions (createShader, createProgram) ---
+function createShader(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader {
+    const shader = gl.createShader(type)!;
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error('Error compiling shader:', gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+        throw new Error('Shader compilation failed');
+    }
+    return shader;
 }
 
-function createProgram(gl: WebGL2RenderingContext, vsSource: string, fsSource: string): WebGLProgram {
-  const vs = createShader(gl, gl.VERTEX_SHADER, vsSource);
-  const fs = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
-  const program = gl.createProgram()!;
-  gl.attachShader(program, vs);
-  gl.attachShader(program, fs);
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    console.error(gl.getProgramInfoLog(program));
-    gl.deleteProgram(program);
-    throw new Error('Could not link program');
-  }
-  gl.deleteShader(vs);
-  gl.deleteShader(fs);
-  return program;
+function createProgram(gl: WebGL2RenderingContext, vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram {
+    const program = gl.createProgram()!;
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error('Error linking program:', gl.getProgramInfoLog(program));
+        gl.deleteProgram(program);
+        throw new Error('Program linking failed');
+    }
+    return program;
 }
 
-const program = createProgram(gl, vertSource, fragSource);
+// --- Main Application ---
+function main() {
+    const canvas = document.getElementById('gl-canvas') as HTMLCanvasElement;
+    const glRaw = canvas.getContext('webgl2');
 
-const positionBuffer = gl2.createBuffer();
-const uvBuffer = gl2.createBuffer();
+    if (!glRaw) {
+        alert('WebGL2 is not supported by your browser.');
+        return;
+    }
 
-// Square made of two triangles
-const positions = new Float32Array([
-  -1, -1, 0,
-   1, -1, 0,
-  -1,  1, 0,
-  -1,  1, 0,
-   1, -1, 0,
-   1,  1, 0
-]);
+    const gl = glRaw as WebGL2RenderingContext;
 
-const uvs = new Float32Array([
-  0, 0,
-  1, 0,
-  0, 1,
-  0, 1,
-  1, 0,
-  1, 1
-]);
+    // --- Basic WebGL Setup ---
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+    const program = createProgram(gl, vertexShader, fragmentShader);
 
-// Setup VAO
-const vao = gl2.createVertexArray();
+    const timeUniformLocation = gl.getUniformLocation(program, 'time');
 
-gl2.bindVertexArray(vao);
+    // --- Vertex Data and Buffers ---
+    const positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    const positions = new Float32Array([
+        -1, -1, 0,  1, -1, 0,  -1, 1, 0,
+        -1, 1, 0,   1, -1, 0,   1, 1, 0
+    ]);
+    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
 
-// Positions
-gl2.bindBuffer(gl2.ARRAY_BUFFER, positionBuffer);
-gl2.bufferData(gl2.ARRAY_BUFFER, positions, gl2.STATIC_DRAW);
-gl2.enableVertexAttribArray(0);
-gl2.vertexAttribPointer(0, 3, gl2.FLOAT, false, 0, 0);
+    const uvBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
+    const uvs = new Float32Array([
+        0, 0,   1, 0,   0, 1,
+        0, 1,   1, 0,   1, 1
+    ]);
+    gl.bufferData(gl.ARRAY_BUFFER, uvs, gl.STATIC_DRAW);
 
-// UVs
-gl2.bindBuffer(gl2.ARRAY_BUFFER, uvBuffer);
-gl2.bufferData(gl2.ARRAY_BUFFER, uvs, gl2.STATIC_DRAW);
-gl2.enableVertexAttribArray(1);
-gl2.vertexAttribPointer(1, 2, gl2.FLOAT, false, 0, 0);
+    // --- Vertex Array Object (VAO) Setup ---
+    const vao = gl.createVertexArray()!;
+    gl.bindVertexArray(vao);
 
-gl2.bindVertexArray(null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
 
-let start = performance.now();
-function render(time: number) {
-  const elapsed = (time - start) * 0.001;
-  gl2.viewport(0, 0, canvas.width, canvas.height);
-  gl2.clearColor(0, 0, 0, 1);
-  gl2.clear(gl2.COLOR_BUFFER_BIT);
+    gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
+    gl.enableVertexAttribArray(1);
+    gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
 
-  gl2.useProgram(program);
-  gl2.bindVertexArray(vao);
+    // --- Animation Control Logic ---
+    let animationFrameId: number = 0;
+    let isAnimating: boolean = false;
+    let startTime = 0;
 
-  const timeLocation = gl2.getUniformLocation(program, 'time');
-  gl2.uniform1f(timeLocation, elapsed);
+    const startButton = document.getElementById('startButton')!;
+    const stopButton = document.getElementById('stopButton')!;
 
-  gl2.drawArrays(gl2.TRIANGLES, 0, 6);
+    function render(time: number) {
+        if (!isAnimating) return;
 
-  requestAnimationFrame(render);
+        const elapsedTime = (time - startTime) * 0.001;
+
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+        gl.clearColor(0, 0, 0, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        gl.useProgram(program);
+        gl.uniform1f(timeUniformLocation, elapsedTime);
+        gl.bindVertexArray(vao);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+        animationFrameId = requestAnimationFrame(render);
+    }
+
+    startButton.addEventListener('click', () => {
+        if (!isAnimating) {
+            isAnimating = true;
+            startTime = performance.now();
+            animationFrameId = requestAnimationFrame(render);
+        }
+    });
+
+    stopButton.addEventListener('click', () => {
+        if (isAnimating) {
+            isAnimating = false;
+            cancelAnimationFrame(animationFrameId);
+        }
+    });
+
+    // --- Initial Static Draw ---
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    gl.useProgram(program);
+    gl.uniform1f(timeUniformLocation, 0.0);
+    gl.bindVertexArray(vao);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
 }
-requestAnimationFrame(render);
+
+// Run the main function
+main();
