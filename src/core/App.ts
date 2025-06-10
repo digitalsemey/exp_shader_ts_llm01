@@ -3,6 +3,10 @@ import { ParticleSystem }             from "../logic/ParticleSystem";
 import { Renderer }                   from "../graphics/Renderer";
 import vert                           from "../shaders/circle.vert";
 import frag                           from "../shaders/circle.frag";
+import postVertShader from "../shaders/post.vert";
+import postFragShader from "../shaders/post.frag";
+import bloomCompositeFragShader from "../shaders/bloom_composite.frag";
+import decayFragShader from "../shaders/decay.frag"; 
 
 export class App {
   private ps: ParticleSystem;
@@ -14,7 +18,13 @@ export class App {
 
     const startCount = getInputVal("count"); 
     this.ps       = new ParticleSystem(count, { ...defaultParams });
-    this.renderer = new Renderer(canvas, vert, frag);
+    this.renderer = new Renderer(canvas,
+      vert, frag,
+      postVertShader, 
+      postFragShader,
+      bloomCompositeFragShader,
+      decayFragShader
+    );
 
     // GUI hooks
     onBtn("startBtn", () => { this.running = true;  this.lastTime = performance.now(); });
