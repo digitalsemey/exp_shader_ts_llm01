@@ -1,3 +1,5 @@
+import { LeniaParams } from "./LeniaParams";
+
 export interface Particle {
     x: number;
     y: number;
@@ -10,15 +12,12 @@ export class ParticleSystem {
     private R_grad: Float32Array; // [x,y] per particle
     private U_grad: Float32Array;
 
-    private readonly mu_k = 4.0;
-    private readonly sigma_k = 1.0;
-    private readonly w_k = 0.022;
-    private readonly mu_g = 0.6;
-    private readonly sigma_g = 0.15;
-    private readonly c_rep = 1.0;
-    private readonly dt = 0.1;
+    private params: LeniaParams;
 
-    constructor(public count: number) {
+    constructor(public count: number, params: LeniaParams) {
+
+        this.params = { ...params }; 
+
         this.particles = new Array(count).fill(0).map(() => ({
             x: (Math.random() - 0.5) * 12,
             y: (Math.random() - 0.5) * 12
@@ -28,6 +27,9 @@ export class ParticleSystem {
         this.R_grad = new Float32Array(count * 2);
         this.U_grad = new Float32Array(count * 2);
     }
+
+    setParams(p: Partial<LeniaParams>) { Object.assign(this.params, p); }
+    getParams(): LeniaParams { return { ...this.params }; }
 
     private fastExp(x: number): number {
         let t = 1.0 + x / 32.0;
@@ -53,8 +55,9 @@ export class ParticleSystem {
 
     step() {
         const { count } = this;
-        this.R_val.fill(this.repulsion_f(0.0, this.c_rep)[0]);
-        this.U_val.fill(this.peak_f(0.0, this.mu_k, this.sigma_k, this.w_k)[0]);
+        const { mu_k, sigma_k, w_k, mu_g, sigma_g, c_rep, dt } = this.params;
+        this.R_val.fill(this.repulsion_f(0.0, c_rep)[0]);
+        this.U_val.fill(this.peak_f(0.0, mu_k, sigma_k, w_k)[0]);
         this.R_grad.fill(0);
         this.U_grad.fill(0);
 
@@ -68,14 +71,14 @@ export class ParticleSystem {
                 dx /= r; dy /= r;
 
                 if (r < 1.0) {
-                    const [R, dR] = this.repulsion_f(r, this.c_rep);
+                    const [R, dR] = this.repulsion_f(r, c_rep);
                     this.add_xy(this.R_grad, i, dx, dy, dR);
                     this.add_xy(this.R_grad, j, dx, dy, -dR);
                     this.R_val[i] += R;
                     this.R_val[j] += R;
                 }
 
-                const [K, dK] = this.peak_f(r, this.mu_k, this.sigma_k, this.w_k);
+                const [K, dK] = this.peak_f(r, mu_k, sigma_k, w_k);
                 this.add_xy(this.U_grad, i, dx, dy, dK);
                 this.add_xy(this.U_grad, j, dx, dy, -dK);
                 this.U_val[i] += K;
@@ -84,20 +87,21 @@ export class ParticleSystem {
         }
 
         for (let i = 0; i < count; ++i) {
-            const [G, dG] = this.peak_f(this.U_val[i], this.mu_g, this.sigma_g, 1.0);
+            const [G, dG] = this.peak_f(this.U_val[i], mu_g, sigma_g, 1.0);
             const vx = dG * this.U_grad[i * 2] - this.R_grad[i * 2];
             const vy = dG * this.U_grad[i * 2 + 1] - this.R_grad[i * 2 + 1];
-            p[i].x += vx * this.dt;
-            p[i].y += vy * this.dt;
+            p[i].x += vx * dt;
+            p[i].y += vy * dt;
         }
     }
 
     getInstanceData(): Float32Array {
         const data = new Float32Array(this.count * 6);
+        const { mu_k, sigma_k, w_k, mu_g, sigma_g, c_rep, dt } = this.params;
         for (let i = 0; i < this.count; ++i) {
             const px = this.particles[i].x;
             const py = this.particles[i].y;
-            const radius = this.c_rep / (this.R_val[i] * 5.0 + 1e-5);
+            const radius = c_rep / (this.R_val[i] * 5.0 + 1e-5);
             const [r, g, b] = [this.U_val[i], 0.5, 1.0 - this.U_val[i]];
             data.set([px, py, radius, r, g, b], i * 6);
         }
