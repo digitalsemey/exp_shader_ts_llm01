@@ -1,6 +1,7 @@
 export class Renderer {
     private canvas: HTMLCanvasElement;
     private gl: WebGL2RenderingContext;
+
     private program: WebGLProgram;
     private vao: WebGLVertexArrayObject;
     private meshBuffer: WebGLBuffer;
@@ -9,46 +10,45 @@ export class Renderer {
     private instanceCount: number = 0;
 
     constructor(canvas: HTMLCanvasElement, vertexShaderSource: string, fragmentShaderSource: string) {
-
         this.canvas = canvas;
         const gl = canvas.getContext("webgl2");
         if (!gl) throw new Error("WebGL2 not supported");
         this.gl = gl;
 
-        // Compile shaders and link program
+        // Compile shaders
         const vertexShader = this.createShader(gl.VERTEX_SHADER, vertexShaderSource);
         const fragmentShader = this.createShader(gl.FRAGMENT_SHADER, fragmentShaderSource);
         this.program = this.createProgram(vertexShader, fragmentShader);
 
-        // Generate circle mesh
-        const circleVertices = this.generateCircleMesh(1.0, 32); // unit circle with 32 segments
+        // Setup mesh (unit circle)
+        const circleVertices = this.generateCircleMesh(1.0, 32); // center + 32 + closing
         this.meshBuffer = gl.createBuffer()!;
         gl.bindBuffer(gl.ARRAY_BUFFER, this.meshBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(circleVertices), gl.STATIC_DRAW);
 
-        // Create instance buffer
+        // Instance data buffer
         this.instanceBuffer = gl.createBuffer()!;
 
         // Setup VAO
         this.vao = gl.createVertexArray()!;
         gl.bindVertexArray(this.vao);
 
-        // Bind circle geometry
+        // Vertex attribute: a_position (vec2)
         gl.bindBuffer(gl.ARRAY_BUFFER, this.meshBuffer);
-        gl.enableVertexAttribArray(0); // a_position
+        gl.enableVertexAttribArray(0);
         gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 
-        // Bind instance attributes: a_offset (vec2), a_radius (float), a_color (vec3)
+        // Instance attributes: a_offset (vec2), a_radius (float), a_color (vec3)
         gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
-        gl.enableVertexAttribArray(1); // a_offset
+        gl.enableVertexAttribArray(1);
         gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 6 * 4, 0);
         gl.vertexAttribDivisor(1, 1);
 
-        gl.enableVertexAttribArray(2); // a_radius
+        gl.enableVertexAttribArray(2);
         gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 6 * 4, 2 * 4);
         gl.vertexAttribDivisor(2, 1);
 
-        gl.enableVertexAttribArray(3); // a_color
+        gl.enableVertexAttribArray(3);
         gl.vertexAttribPointer(3, 3, gl.FLOAT, false, 6 * 4, 3 * 4);
         gl.vertexAttribDivisor(3, 1);
 
@@ -83,7 +83,7 @@ export class Renderer {
     }
 
     private generateCircleMesh(radius: number, segments: number): number[] {
-        const vertices = [0, 0];
+        const vertices = [0, 0]; // center
         for (let i = 0; i <= segments; ++i) {
             const angle = (i / segments) * 2 * Math.PI;
             vertices.push(Math.cos(angle) * radius, Math.sin(angle) * radius);
@@ -99,11 +99,11 @@ export class Renderer {
 
     private resizeCanvasToDisplaySize() {
         const dpr = window.devicePixelRatio || 1;
-        const width  = Math.floor(this.canvas.clientWidth  * dpr);
+        const width = Math.floor(this.canvas.clientWidth * dpr);
         const height = Math.floor(this.canvas.clientHeight * dpr);
 
         if (this.canvas.width !== width || this.canvas.height !== height) {
-            this.canvas.width  = width;
+            this.canvas.width = width;
             this.canvas.height = height;
             this.gl.viewport(0, 0, width, height);
         }
@@ -118,10 +118,9 @@ export class Renderer {
         gl.bindVertexArray(this.vao);
 
         const uWorldSizeLoc = gl.getUniformLocation(this.program, "uWorldSize");
-        gl.uniform1f(uWorldSizeLoc, 24.0);   // 12  → тот же диапазон, что в ParticleSystem
+        gl.uniform1f(uWorldSizeLoc, 24.0);
 
-
-        gl.drawArraysInstanced(gl.TRIANGLE_FAN, 0, 34, this.instanceCount); // 32 segments + center + closing point
+        gl.drawArraysInstanced(gl.TRIANGLE_FAN, 0, 34, this.instanceCount);
         gl.bindVertexArray(null);
     }
 }
