@@ -11,9 +11,3 @@ npm start
 
 Open <http://localhost:9000> to see the result.
 
-## Production build
-
-```bash
-npm run build
-```
-The output can be found in the `dist/` folder.
