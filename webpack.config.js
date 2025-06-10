@@ -15,6 +15,16 @@ module.exports = {
         test: /\.(vert|frag)$/,
         use: 'raw-loader',
       },
+      {
+        test: /\.worker\.ts$/, // Or just /\.ts$/, but specific to worker files
+        use: {
+          loader: 'worker-loader',
+          options: {
+            filename: '[name].js', // Or a hash for cache busting
+            inline: 'fallback' // For older browsers or specific environments
+          }
+        }
+      },
     ],
   },
   resolve: {

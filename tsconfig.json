@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "target": "ES6",
-    "module": "ES2015",
+    "module": "es2020", // Change this from whatever it was (e.g., "commonjs", "es2015")
+    "target": "es2020", 
     "strict": true,
     "esModuleInterop": true,
     "moduleResolution": "node",
