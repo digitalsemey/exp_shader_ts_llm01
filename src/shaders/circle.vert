@@ -6,14 +6,12 @@ layout(location = 1) in vec2  a_offset;     // центр частицы
 layout(location = 2) in float a_radius;     // радиус
 layout(location = 3) in vec3  a_color;      // цвет
 
-uniform float uWorldSize;                   // диапазон координат, ≈ 12
+uniform float uWorldSize; 
 
 out vec3 v_color;
 
 void main() {
     vec2 worldPos = a_offset + a_position * a_radius;
-
-    // переводим в NDC: [-uWorldSize, +uWorldSize]  →  [-1, +1]
     vec2 ndc = worldPos / uWorldSize;
     gl_Position = vec4(ndc, 0.0, 1.0);
 

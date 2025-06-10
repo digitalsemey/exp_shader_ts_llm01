@@ -68,8 +68,6 @@ export class ParticleSystem {
     setParams(p: Partial<LeniaParams>) { Object.assign(this.params, p); }
     getParams(): LeniaParams { return { ...this.params }; }
 
-    // ... (setParams, getParams, fastExp, peak_f) ...
-
     private handleWorkerMessage(event: MessageEvent) {
         const { workerIndex, startIndex, endIndex, R_val_chunk, U_val_chunk, R_grad_chunk, U_grad_chunk } = event.data;
 
@@ -186,7 +184,45 @@ export class ParticleSystem {
 
             const radius = this.params.c_rep / (this.R_val[i] * 5.0 + 1e-5);
             const [r, g, b] = [this.U_val[i], 0.5, 1.0 - this.U_val[i]];
-            data.set([px, py, radius, r, g, b], i * 6);
+            //data.set([px, py, radius, r, g, b], i * 6);
+            //// --- НОВЫЕ РАСЧЕТЫ ЦВЕТА ---
+            //// Нормализуем U_val и R_val в диапазон [0, 1] для удобства
+            //// Значения U_val и R_val могут быть очень большими или очень маленькими,
+            //// поэтому требуется нормализация или насыщение.
+            //// Допустим, U_val в среднем колеблется около mu_g, а R_val от 0 до некого максимума.
+//
+            //const normalizedU = Math.min(1.0, Math.max(0.0, this.U_val[i] / (this.params.mu_k * 1.5 + 0.1))); // Пример нормализации U_val
+            //const normalizedR = Math.min(1.0, Math.max(0.0, this.R_val[i] / (this.params.c_rep * 5.0 + 0.1))); // Пример нормализации R_val
+//
+            //let r: number, g: number, b: number;
+//
+            //// Вариант 1: Цветовой переход от "здорового" к "переполненному" / "пустому"
+            //// Например: U_val (жизнь/рост) в R/B каналах, R_val (теснота/отталкивание) в G канале
+            ////r = normalizedU;
+            ////g = normalizedR;
+            ////b = 1.0 - normalizedU; // Оттенок синего/голубого для низкого U_val
+//
+            //// Вариант 2: Использование функции smoothstep для более плавных переходов
+            //// Например, от синего (низкий U_val) через зеленый к красному (высокий U_val)
+            // const green_mid_point = this.params.mu_g; // середина для U_val
+            // const blue_red_range = 0.95; // диапазон для перехода
+//
+            //r = smoothstep_custom(normalizedU, green_mid_point, green_mid_point + blue_red_range);
+            //g = smoothstep_custom(normalizedU, green_mid_point - blue_red_range, green_mid_point + blue_red_range); // Зеленый в середине
+            //b = smoothstep_custom(1.0 - normalizedU, green_mid_point, green_mid_point + blue_red_range);
+//
+            //// Или более простой:
+            //// r = normalizedU * 0.8 + normalizedR * 0.2; // R от роста и немного от тесноты
+            //// g = normalizedR * 0.9; // G от тесноты
+            //// b = (1.0 - normalizedU) * 0.8; // B от угасания
+//
+            //// Убедитесь, что значения цвета находятся в диапазоне [0, 1]
+            //r = Math.min(1.0, Math.max(0.0, r));
+            //g = Math.min(1.0, Math.max(0.0, g));
+            //b = Math.min(1.0, Math.max(0.0, b));
+            //// --- КОНЕЦ НОВЫХ РАСЧЕТОВ ЦВЕТА ---
+//
+            //data.set([px, py, radius, r, g, b], i * 6);
         }
         return data;
     }
@@ -195,3 +231,8 @@ export class ParticleSystem {
         this.workers.forEach(worker => worker.terminate());
     }
 }
+
+function smoothstep_custom(x: number, edge0: number, edge1: number): number {
+    x = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+    return x * x * (3 - 2 * x);
+ }

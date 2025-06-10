@@ -118,7 +118,7 @@ export class Renderer {
         gl.bindVertexArray(this.vao);
 
         const uWorldSizeLoc = gl.getUniformLocation(this.program, "uWorldSize");
-        gl.uniform1f(uWorldSizeLoc, 24.0);
+        gl.uniform1f(uWorldSizeLoc, 34.0);
 
         gl.drawArraysInstanced(gl.TRIANGLE_FAN, 0, 34, this.instanceCount);
         gl.bindVertexArray(null);

@@ -16,7 +16,7 @@ export class App {
   private lastFpsUpdateTime = 0;
   private fpsDisplayElement: HTMLElement | null;
 
-  constructor(private canvas: HTMLCanvasElement, count = 300) {
+  constructor(private canvas: HTMLCanvasElement, count = 1000) {
     const startCount = getInputVal("count");
     // Initialize ParticleSystem with worker count
     console.log("Navigator hardware concurrency (logical cores):", navigator.hardwareConcurrency);
