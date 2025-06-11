@@ -1,130 +1,142 @@
 export class Renderer {
-    private canvas: HTMLCanvasElement;
-    private gl: WebGL2RenderingContext;
+  private device: GPUDevice;
+  private context: GPUCanvasContext;
+  private pipeline: GPURenderPipeline;
+  private circleBuffer: GPUBuffer;
+  private indexBuffer: GPUBuffer;
+  private bindGroup: GPUBindGroup;
+  private indexCount: number;
+  private instanceCount: number;
 
-    private program: WebGLProgram;
-    private vao: WebGLVertexArrayObject;
-    private meshBuffer: WebGLBuffer;
-    private instanceBuffer: WebGLBuffer;
+  constructor(
+    device: GPUDevice,
+    context: GPUCanvasContext,
+    pipeline: GPURenderPipeline,
+    circleBuffer: GPUBuffer,
+    indexBuffer: GPUBuffer,
+    bindGroup: GPUBindGroup,
+    indexCount: number,
+    instanceCount: number
+  ) {
+    this.device = device;
+    this.context = context;
+    this.pipeline = pipeline;
+    this.circleBuffer = circleBuffer;
+    this.indexBuffer = indexBuffer;
+    this.bindGroup = bindGroup;
+    this.indexCount = indexCount;
+    this.instanceCount = instanceCount;
+  }
 
-    private instanceCount: number = 0;
+  static async create(
+    device: GPUDevice,
+    canvas: HTMLCanvasElement,
+    particleBuffer: GPUBuffer,
+    shaderCode: string,
+    particleCount: number
+  ): Promise<Renderer> {
+    const context = canvas.getContext("webgpu") as GPUCanvasContext;
+    const format = navigator.gpu.getPreferredCanvasFormat();
+    context.configure({
+      device,
+      format,
+      alphaMode: "opaque"
+    });
 
-    constructor(canvas: HTMLCanvasElement, vertexShaderSource: string, fragmentShaderSource: string) {
-        this.canvas = canvas;
-        const gl = canvas.getContext("webgl2");
-        if (!gl) throw new Error("WebGL2 not supported");
-        this.gl = gl;
-
-        // Compile shaders
-        const vertexShader = this.createShader(gl.VERTEX_SHADER, vertexShaderSource);
-        const fragmentShader = this.createShader(gl.FRAGMENT_SHADER, fragmentShaderSource);
-        this.program = this.createProgram(vertexShader, fragmentShader);
-
-        // Setup mesh (unit circle)
-        const circleVertices = this.generateCircleMesh(1.0, 32); // center + 32 + closing
-        this.meshBuffer = gl.createBuffer()!;
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.meshBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(circleVertices), gl.STATIC_DRAW);
-
-        // Instance data buffer
-        this.instanceBuffer = gl.createBuffer()!;
-
-        // Setup VAO
-        this.vao = gl.createVertexArray()!;
-        gl.bindVertexArray(this.vao);
-
-        // Vertex attribute: a_position (vec2)
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.meshBuffer);
-        gl.enableVertexAttribArray(0);
-        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-
-        // Instance attributes: a_offset (vec2), a_radius (float), a_color (vec3)
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
-        gl.enableVertexAttribArray(1);
-        gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 6 * 4, 0);
-        gl.vertexAttribDivisor(1, 1);
-
-        gl.enableVertexAttribArray(2);
-        gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 6 * 4, 2 * 4);
-        gl.vertexAttribDivisor(2, 1);
-
-        gl.enableVertexAttribArray(3);
-        gl.vertexAttribPointer(3, 3, gl.FLOAT, false, 6 * 4, 3 * 4);
-        gl.vertexAttribDivisor(3, 1);
-
-        gl.bindVertexArray(null);
-
-        this.resizeCanvasToDisplaySize();
-
-        window.addEventListener("resize", () => this.resizeCanvasToDisplaySize());
+    // Circle mesh (unit circle)
+    const segments = 32;
+    const verts = [0, 0];
+    for (let i = 0; i <= segments; ++i) {
+      const angle = (i / segments) * 2 * Math.PI;
+      verts.push(Math.cos(angle), Math.sin(angle));
     }
 
-    private createShader(type: number, source: string): WebGLShader {
-        const shader = this.gl.createShader(type)!;
-        this.gl.shaderSource(shader, source);
-        this.gl.compileShader(shader);
-        if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-            console.error(this.gl.getShaderInfoLog(shader));
-            throw new Error("Shader compilation failed");
-        }
-        return shader;
+    // Indices for triangle fan
+    const indices: number[] = [];
+    for (let i = 1; i <= segments; ++i) {
+      indices.push(0, i, i + 1);
     }
 
-    private createProgram(vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram {
-        const program = this.gl.createProgram()!;
-        this.gl.attachShader(program, vertexShader);
-        this.gl.attachShader(program, fragmentShader);
-        this.gl.linkProgram(program);
-        if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
-            console.error(this.gl.getProgramInfoLog(program));
-            throw new Error("Program linking failed");
-        }
-        return program;
-    }
+    const circleBuffer = device.createBuffer({
+      size: verts.length * 4,
+      usage: GPUBufferUsage.VERTEX,
+      mappedAtCreation: true
+    });
+    new Float32Array(circleBuffer.getMappedRange()).set(verts);
+    circleBuffer.unmap();
 
-    private generateCircleMesh(radius: number, segments: number): number[] {
-        const vertices = [0, 0]; // center
-        for (let i = 0; i <= segments; ++i) {
-            const angle = (i / segments) * 2 * Math.PI;
-            vertices.push(Math.cos(angle) * radius, Math.sin(angle) * radius);
-        }
-        return vertices;
-    }
+    const indexBuffer = device.createBuffer({
+      size: indices.length * 2,
+      usage: GPUBufferUsage.INDEX,
+      mappedAtCreation: true
+    });
+    new Uint16Array(indexBuffer.getMappedRange()).set(indices);
+    indexBuffer.unmap();
 
-    updateInstanceData(instances: Float32Array, count: number) {
-        this.instanceCount = count;
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.instanceBuffer);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, instances, this.gl.DYNAMIC_DRAW);
-    }
+    const shaderModule = device.createShaderModule({ code: shaderCode });
 
-    private resizeCanvasToDisplaySize() {
-        const dpr = window.devicePixelRatio || 1;
-        const width = Math.floor(this.canvas.clientWidth * dpr);
-        const height = Math.floor(this.canvas.clientHeight * dpr);
+    const bindGroupLayout = device.createBindGroupLayout({
+      entries: [{
+        binding: 0,
+        visibility: GPUShaderStage.VERTEX,
+        buffer: { type: "read-only-storage" }
+      }]
+    });
 
-        if (this.canvas.width !== width || this.canvas.height !== height) {
-            this.canvas.width = width;
-            this.canvas.height = height;
-            this.gl.viewport(0, 0, width, height);
-        }
-    }
+    const pipelineLayout = device.createPipelineLayout({
+      bindGroupLayouts: [bindGroupLayout]
+    });
 
-    draw() {
-        const gl = this.gl;
-        gl.clearColor(0, 0, 0, 1);
-        gl.clear(gl.COLOR_BUFFER_BIT);
+    const pipeline = device.createRenderPipeline({
+      layout: pipelineLayout,
+      vertex: {
+        module: shaderModule,
+        entryPoint: "vs_main",
+        buffers: [{
+          arrayStride: 2 * 4,
+          attributes: [{ shaderLocation: 0, format: "float32x2", offset: 0 }]
+        }]
+      },
+      fragment: {
+        module: shaderModule,
+        entryPoint: "fs_main",
+        targets: [{ format }]
+      },
+      primitive: { topology: "triangle-list" }
+    });
 
-        gl.useProgram(this.program);
-        gl.bindVertexArray(this.vao);
+    const bindGroup = device.createBindGroup({
+      layout: bindGroupLayout,
+      entries: [{
+        binding: 0,
+        resource: { buffer: particleBuffer }
+      }]
+    });
 
-        const uWorldSizeLoc = gl.getUniformLocation(this.program, "uWorldSize");
-        gl.uniform1f(uWorldSizeLoc, 34.0);
+    return new Renderer(device, context, pipeline, circleBuffer, indexBuffer, bindGroup, indices.length, particleCount);
+  }
 
-        gl.drawArraysInstanced(gl.TRIANGLE_FAN, 0, 34, this.instanceCount);
+draw() {
+  const encoder = this.device.createCommandEncoder();
+  const pass = encoder.beginRenderPass({
+    colorAttachments: [{
+      view: this.context.getCurrentTexture().createView(),
+      loadOp: "clear",
+      storeOp: "store",
+      clearValue: { r: 0, g: 0, b: 0, a: 1 }
+    }]
+  });
 
-        const err = gl.getError();
-        if (err !== gl.NO_ERROR) console.warn("WebGL Error:", err);
-        
-        gl.bindVertexArray(null);
-    }
+  pass.setPipeline(this.pipeline);
+  pass.setVertexBuffer(0, this.circleBuffer);
+  pass.setIndexBuffer(this.indexBuffer, "uint16");
+  pass.setBindGroup(0, this.bindGroup);
+
+  // 👇 ВАЖНО: используем drawIndexed с instanceCount
+  pass.drawIndexed(this.indexCount, this.instanceCount);
+  pass.end();
+
+  this.device.queue.submit([encoder.finish()]);
+}
+
 }

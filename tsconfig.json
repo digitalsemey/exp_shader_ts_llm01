@@ -1,13 +1,14 @@
 {
   "compilerOptions": {
-    "module": "es2020", // Change this from whatever it was (e.g., "commonjs", "es2015")
-    "target": "es2020", 
+    "target": "es2022",
+    "module": "es2022",
+    "lib": ["dom", "es2022"],
     "strict": true,
     "esModuleInterop": true,
     "moduleResolution": "node",
-    "sourceMap": true,
     "outDir": "dist",
-    "lib": ["es6", "dom", "dom.iterable"] 
+    "sourceMap": true,
+     "typeRoots": [ "./node_modules/@webgpu/types", "./node_modules/@types"],
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "src/types.d.ts"]
 }

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Lenia WebGPU</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      color: #ccc;
+      font-family: sans-serif;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+    #paramPanel {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: white;
+    }
+    .hidden {
+      display: none;
+    }
+    #buttons {
+      margin-bottom: 10px;
+    }
+    #buttons button {
+      margin-right: 4px;
+      padding: 4px 8px;
+      font-size: 12px;
+      background: #333;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #buttons button:hover {
+      background: #555;
+    }
+    #sliders {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .slider-row label {
+      width: 30px;
+      margin-right: 6px;
+      color: #eee;
+    }
+    .slider-row input[type=range] {
+      width: 120px;
+      accent-color: #2196f3;
+    }
+    #fpsDisplay {
+      margin-top: 6px;
+      font-size: 12px;
+      color: #ccc;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="800" height="800"></canvas>
+
+  <div id="paramPanel" class="menu">
+    <div id="buttons">
+      <button id="startBtn">Start</button>
+      <button id="stopBtn">Stop</button>
+      <button id="resetBtn">Reset</button>
+      <button id="hideBtn">Hide</button>
+    </div>
+    <div id="sliders">
+      <div class="slider-row"><label for="mu_k">μₖ</label><input id="mu_k" type="range" min="0.001" max="5" step="0.01" value="4.0"></div>
+      <div class="slider-row"><label for="sigma_k">σₖ</label><input id="sigma_k" type="range" min="0.01" max="2" step="0.01" value="1.0"></div>
+      <div class="slider-row"><label for="w_k">wₖ</label><input id="w_k" type="range" min="0" max="0.1" step="0.001" value="0.022"></div>
+      <div class="slider-row"><label for="mu_g">μg</label><input id="mu_g" type="range" min="0" max="1" step="0.01" value="0.6"></div>
+      <div class="slider-row"><label for="sigma_g">σg</label><input id="sigma_g" type="range" min="0.01" max="1" step="0.01" value="0.15"></div>
+      <div class="slider-row"><label for="dt">dt</label><input id="dt" type="range" min="0.01" max="0.5" step="0.001" value="0.1"></div>
+      <div class="slider-row"><label for="c_rep">N</label><input id="c_rep" type="range" min="100" max="5000" step="0.01" value="1.0"></div>
+    </div>
+    <div id="fpsDisplay">FPS: 0</div>
+  </div>
+
+  <script src="bundle.js"></script>
+</body>
+</html>

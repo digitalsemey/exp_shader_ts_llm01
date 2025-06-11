@@ -12,16 +12,16 @@ module.exports = {
         exclude: /node_modules/,
       },
       {
-        test: /\.(vert|frag)$/,
+        test: /\.(vert|frag|wgsl)$/,
         use: 'raw-loader',
       },
       {
-        test: /\.worker\.ts$/, // Or just /\.ts$/, but specific to worker files
+        test: /\.worker\.ts$/,
         use: {
           loader: 'worker-loader',
           options: {
-            filename: '[name].js', // Or a hash for cache busting
-            inline: 'fallback' // For older browsers or specific environments
+            filename: '[name].js',
+            inline: 'fallback'
           }
         }
       },
