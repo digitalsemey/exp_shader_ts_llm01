@@ -21,7 +21,7 @@ struct Params {
     sigma_g : f32, // Offset 16
     dt      : f32, // Offset 20
     c_rep   : f32, // Offset 24
-    _pad    : f32,    // Offset 28 (Explicit padding to fill up to 32-byte mark)
+    c_attract : f32, // Offset 28 (NEW: Attraction coefficient, replaces _pad)
     _padding : vec4<f32>, // Offset 32 (Occupies 16 bytes, total 48 bytes for struct)
 };
 
@@ -107,7 +107,17 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     // Compute the final gradient based on U_val and its gradient (Lenia dynamics)
     // G_peak.y gives the derivative G'(U)
     let G_peak = peak_f(U_val, params.mu_g, params.sigma_g, 1.0);
-    let grad = G_peak.y * grad_U - grad_R; // Total force gradient on the particle
+    var grad = G_peak.y * grad_U - grad_R; // Total force gradient on the particle
+
+    // --- NEW: Add global attraction force towards the origin (0,0) ---
+    // Calculate direction vector from particle to origin
+    let attraction_dir = -p_i.position; // Vector pointing towards origin
+
+    // Normalize the direction vector and scale by attraction strength
+    let attraction_force = normalize(attraction_dir) * params.c_attract;
+
+    // Add attraction force to the total gradient
+    grad += attraction_force;
 
     // --- Add continuous random movement (noise) logic (from JS ParticleSystem) ---
     let noise_strength = 0.15; // Controls the intensity of the noise
