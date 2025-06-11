@@ -125,7 +125,7 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     p_i.noise *= noise_dampening;
 
     // Combine the Lenia-driven force (grad) with the particle's noise velocity
-    var current_vel = grad;// + p_i.noise;
+    var current_vel = grad + p_i.noise;
 
     // Update particle position using the combined velocity and time step
     p_i.position += current_vel * params.dt;
@@ -134,7 +134,7 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     // --- Update Radius and Color for rendering ---
     // These values are dynamically computed based on the simulation state (R_val and U_val)
     // and will be read by the render shader.
-    p_i.radius = params.c_rep / (R_val * 5.0 + 1e-5); // Radius influenced by repulsion value
+    p_i.radius = params.c_rep / (R_val * 2.5 + 1e-2); // Radius influenced by repulsion value
     p_i.color = vec3<f32>(U_val, 0.5, 1.0 - U_val); // Color interpolation based on U_val
 
     // Write the fully updated particle data back to the storage buffer
