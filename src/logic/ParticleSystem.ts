@@ -222,7 +222,7 @@ export class ParticleSystem {
             //b = Math.min(1.0, Math.max(0.0, b));
             //// --- КОНЕЦ НОВЫХ РАСЧЕТОВ ЦВЕТА ---
 //
-            //data.set([px, py, radius, r, g, b], i * 6);
+            data.set([px, py, radius, r, g, b], i * 6);
         }
         return data;
     }

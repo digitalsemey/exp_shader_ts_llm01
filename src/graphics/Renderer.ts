@@ -121,6 +121,10 @@ export class Renderer {
         gl.uniform1f(uWorldSizeLoc, 34.0);
 
         gl.drawArraysInstanced(gl.TRIANGLE_FAN, 0, 34, this.instanceCount);
+
+        const err = gl.getError();
+        if (err !== gl.NO_ERROR) console.warn("WebGL Error:", err);
+        
         gl.bindVertexArray(null);
     }
 }
