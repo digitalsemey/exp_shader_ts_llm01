@@ -143,12 +143,11 @@ function onBtn(id: string, f: () => void) {
   if (btn) btn.addEventListener("click", f);
 }
 
-// Helper to toggle visibility of the parameter panel
 function togglePanel() {
-  const panel = document.getElementById("paramPanel"); // Use paramPanel as that's the main container
+  const sliders = document.getElementById("sliders");
   const btn = document.getElementById("hideBtn");
-  if (panel && btn) {
-    panel.classList.toggle("hidden"); // Toggles the 'hidden' CSS class
-    btn.textContent = panel.classList.contains("hidden") ? "Show" : "Hide"; // Changes button text
+  if (sliders && btn) {
+     sliders.classList.toggle("hidden");
+    btn.textContent = sliders.classList.contains("hidden") ? "Show" : "Hide";
   }
 }
