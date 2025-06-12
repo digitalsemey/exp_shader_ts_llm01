@@ -91,8 +91,16 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
         let r = length(delta) + 1e-5; // Distance between particles, add epsilon to prevent division by zero
         let dir = delta / r; // Normalized direction vector
 
+        let min_dist_for_overlap = p_i.radius + p_j.radius;
+        if (r < min_dist_for_overlap) {
+            let overlap_amount = min_dist_for_overlap - r; // How much they overlap
+            let collision_repulsion_strength = 0.05; // Increased strength for direct non-intersection
+            // Apply a strong push force proportional to the overlap
+            p_i.position += dir * overlap_amount * collision_repulsion_strength;
+        }
+
         // Calculate and accumulate Repulsion force
-        if (r < 1.0) { // Repulsion is typically short-range
+        if (r < 1.0) {
             let rep = repulsion_f(r, params.c_rep);
             R_val += rep.x;      // Accumulate the repulsion value
             grad_R += dir * rep.y; // Accumulate the repulsion gradient
@@ -126,8 +134,8 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     // Generate random nudges for the particle's noise velocity
     // A time-varying component derived from params.dt is used to make the noise evolve.
     let time_seed_component = fract(params.dt * 1000.0); // Using dt as a simple evolving seed component
-    let random_nudge_x = (random(vec2<f32>(f32(id.x), time_seed_component)) - 0.5) * 2.0; // Scale to range [-1, 1]
-    let random_nudge_y = (random(vec2<f32>(f32(id.x) + 0.5, time_seed_component)) - 0.5) * 2.0; // Different seed for y component
+    let random_nudge_x = (random(vec2<f32>(f32(id.x), time_seed_component)) - 0.5) * 1.0; // Scale to range [-1, 1]
+    let random_nudge_y = (random(vec2<f32>(f32(id.x) + 0.5, time_seed_component)) - 0.5) * 1.0; // Different seed for y component
 
     // Update and dampen the particle's internal noise velocity
     p_i.noise.x += random_nudge_x * noise_strength * params.dt;
@@ -135,7 +143,7 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     p_i.noise *= noise_dampening;
 
     // Combine the Lenia-driven force (grad) with the particle's noise velocity
-    var current_vel = grad + p_i.noise;
+    var current_vel = grad;// + p_i.noise;
 
     // Update particle position using the combined velocity and time step
     p_i.position += current_vel * params.dt;

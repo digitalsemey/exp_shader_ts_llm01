@@ -26,7 +26,7 @@ fn vs_main(
   let p = particles[i];
   let world = p.position + position * p.radius; // Now reads correct radius
   var out: VertexOutput;
-  out.pos = vec4<f32>(world / 62.0, 0.0, 1.0);
+  out.pos = vec4<f32>(world /65.0, 0.0, 1.0);
   out.color = p.color; // Now reads correct color
   return out;
 }
