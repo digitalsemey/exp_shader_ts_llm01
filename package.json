@@ -1,0 +1,19 @@
+{
+  "name": "webgl2-shader-project",
+  "version": "1.0.0",
+  "description": "A minimal WebGL2 project with shaders using TypeScript and Webpack.",
+  "private": true,
+  "scripts": {
+    "start": "webpack serve --open",
+    "build": "webpack"
+  },
+  "devDependencies": {
+    "raw-loader": "^4.0.2",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.4.5",
+    "webpack": "^5.91.0",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^5.0.4"
+  },
+  "license": "ISC"
+}
